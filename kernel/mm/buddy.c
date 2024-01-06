@@ -54,6 +54,10 @@ static struct page *split_chunk(struct phys_mem_pool *pool, int order,
          */
         /* BLANK BEGIN */
         struct page *buddy_chunk;
+        struct page *page;
+        int page_idx;
+        int page_num;
+        int new_order;
         if (chunk->order < order) {
                 kwarn("Bad order in split_chunk\n");
                 return NULL;
@@ -63,10 +67,19 @@ static struct page *split_chunk(struct phys_mem_pool *pool, int order,
         }
         /* split the chunk into two smaller pieces and put the buddy chunk to
          * the free_list */
-        chunk->order -= 1;
+        new_order = chunk->order - 1;
+        page_num = 1UL << new_order;
+        for (page_idx = 0; page_idx < page_num; page_idx++) {
+                page = chunk + page_idx;
+                page->allocated = 1;
+                page->order -= 1;
+        }
         buddy_chunk = get_buddy_chunk(pool, chunk);
-        buddy_chunk->allocated = 0;
-        buddy_chunk->order = chunk->order;
+        for (page_idx = 0; page_idx < page_num; page_idx++) {
+                page = buddy_chunk + page_idx;
+                page->allocated = 0;
+                page->order -= 1;
+        }
         list_add(&(buddy_chunk->node),
                  &(pool->free_lists[buddy_chunk->order].free_list));
         pool->free_lists[buddy_chunk->order].nr_free += 1;
@@ -87,6 +100,9 @@ static struct page *merge_chunk(struct phys_mem_pool *pool, struct page *chunk)
          */
         /* BLANK BEGIN */
         struct page *buddy_chunk;
+        struct page *page;
+        int page_idx;
+        int page_num;
 
         if (chunk->order >= BUDDY_MAX_ORDER - 1)
                 return chunk;
@@ -100,8 +116,17 @@ static struct page *merge_chunk(struct phys_mem_pool *pool, struct page *chunk)
 
         list_del(&(buddy_chunk->node));
         pool->free_lists[buddy_chunk->order].nr_free -= 1;
-        buddy_chunk->order += 1;
-        chunk->order += 1;
+        page_num = 1UL << chunk->order;
+        for (page_idx = 0; page_idx < page_num; page_idx++) {
+                page = chunk + page_idx;
+                page->allocated = 0;
+                page->order += 1;
+        }
+        for (page_idx = 0; page_idx < page_num; page_idx++) {
+                page = buddy_chunk + page_idx;
+                page->allocated = 0;
+                page->order += 1;
+        }
         if (chunk > buddy_chunk)
                 chunk = buddy_chunk;
         return merge_chunk(pool, chunk);

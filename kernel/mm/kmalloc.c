@@ -130,6 +130,7 @@ void *_kmalloc(size_t size, bool is_record, size_t *real_size)
                 /* BLANK BEGIN */
                 order = size_to_page_order(size);
                 addr = get_pages(order);
+                *real_size = ROUND_UP(size, BUDDY_PAGE_SIZE);
 
                 /* BLANK END */
                 /* LAB 2 TODO 3 END */

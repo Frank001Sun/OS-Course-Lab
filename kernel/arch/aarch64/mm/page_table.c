@@ -302,6 +302,7 @@ int query_in_pgtbl(void *pgtbl, vaddr_t va, paddr_t *pa, pte_t **entry)
          * `-ENOMAPPING` if the va is not mapped.
          */
         /* BLANK BEGIN */
+        // return debug_query_in_pgtbl(pgtbl, va, pa, entry);
         ptp_t *l0_ptp, *l1_ptp, *l2_ptp, *l3_ptp;
         ptp_t *phys_page;
         pte_t *pte;
@@ -315,21 +316,35 @@ int query_in_pgtbl(void *pgtbl, vaddr_t va, paddr_t *pa, pte_t **entry)
 
         // L1 page table
         ret = get_next_ptp(l1_ptp, L1, va, &l2_ptp, &pte, false, NULL);
-        if (ret < 0)
+        if (ret < 0) {
                 return ret;
+        } else if (ret == BLOCK_PTP) {
+                *pa = virt_to_phys((vaddr_t)l2_ptp) + GET_VA_OFFSET_L1(va);
+                if (entry)
+                        *entry = pte;
+                return 0;
+        }
 
         // L2 page table
         ret = get_next_ptp(l2_ptp, L2, va, &l3_ptp, &pte, false, NULL);
-        if (ret < 0)
+        if (ret < 0) {
                 return ret;
+        } else if (ret == BLOCK_PTP) {
+                *pa = virt_to_phys((vaddr_t)l3_ptp) + GET_VA_OFFSET_L2(va);
+                if (entry)
+                        *entry = pte;
+                return 0;
+        }
 
         // L3 page table
         ret = get_next_ptp(l3_ptp, L3, va, &phys_page, &pte, false, NULL);
-        if (ret < 0)
+        if (ret < 0) {
                 return ret;
+        }
 
         *pa = virt_to_phys((vaddr_t)phys_page) + GET_VA_OFFSET_L3(va);
-        *entry = pte;
+        if (entry)
+                *entry = pte;
 
         /* BLANK END */
         /* LAB 2 TODO 4 END */
@@ -380,7 +395,7 @@ static int map_range_in_pgtbl_common(void *pgtbl, vaddr_t va, paddr_t pa, size_t
                 // L3
                 // step-1: get the index of pte
                 pte_index = GET_L3_INDEX(va);
-                for (i = pte_index; i < PTP_ENTRIES; i++) {
+                for (i = pte_index; i < PTP_ENTRIES; ++i) {
                         pte_t new_pte_val;
 
                         new_pte_val.pte = 0;
@@ -505,7 +520,7 @@ int unmap_range_in_pgtbl(void *pgtbl, vaddr_t va, size_t len, long *rss)
                 // L3
                 // step-1: get the index of pte
                 pte_index = GET_L3_INDEX(va);
-                for (i = pte_index; i < PTP_ENTRIES; i++) {
+                for (i = pte_index; i < PTP_ENTRIES; ++i) {
                         pte_t new_pte_val;
                         new_pte_val.pte = l3_ptp->ent[i].pte;
                         new_pte_val.l3_page.is_valid = 0;
