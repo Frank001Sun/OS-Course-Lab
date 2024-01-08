@@ -4,3 +4,6 @@ set substitute-path /chos/ ./
 layout split
 
 file ./build/kernel.img
+
+b sync_el0_64
+display $sp
