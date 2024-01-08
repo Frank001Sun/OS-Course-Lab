@@ -55,6 +55,9 @@ int __rr_sched_enqueue(struct thread *thread, int cpuid)
         /* LAB 4 TODO BEGIN (exercise 2) */
         /* Insert thread into the ready queue of cpuid and update queue length */
         /* Note: you should add two lines of code. */
+        list_add(&thread->ready_queue_node,
+                 &rr_ready_queue_meta[cpuid].queue_head);
+        rr_ready_queue_meta[cpuid].queue_len += 1;
 
         /* LAB 4 TODO END (exercise 2) */
 
@@ -141,6 +144,8 @@ int __rr_sched_dequeue(struct thread *thread)
         /* LAB 4 TODO BEGIN (exercise 3) */
         /* Delete thread from the ready queue and upate the queue length */
         /* Note: you should add two lines of code. */
+        list_del(&thread->ready_queue_node);
+        rr_ready_queue_meta[thread->thread_ctx->cpuid].queue_len -= 1;
 
         /* LAB 4 TODO END (exercise 3) */
         thread->thread_ctx->state = TS_INTER;
@@ -260,6 +265,7 @@ int rr_sched(void)
                         }
                         /* LAB 4 TODO BEGIN (exercise 6) */
                         /* Refill budget for current running thread (old) */
+                        old->thread_ctx->sc->budget = DEFAULT_BUDGET;
 
                         /* LAB 4 TODO END (exercise 6) */
 
@@ -268,6 +274,7 @@ int rr_sched(void)
                         /* LAB 4 TODO BEGIN (exercise 4) */
                         /* Enqueue current running thread */
                         /* Note: you should just add a function call (one line of code) */
+                        rr_sched_enqueue(old);
 
                         /* LAB 4 TODO END (exercise 4) */
                         break;
@@ -291,6 +298,12 @@ int rr_sched_init(void)
 {
         /* LAB 4 TODO BEGIN (exercise 1) */
         /* Initial the ready queues (rr_ready_queue_meta) for each CPU core */
+        int i;
+        for (i = 0; i < PLAT_CPU_NUM; i++) {
+                init_list_head(&(rr_ready_queue_meta[i].queue_head));
+                lock_init(&(rr_ready_queue_meta[i].queue_lock));
+                rr_ready_queue_meta[i].queue_len = 0;
+        }
 
         /* LAB 4 TODO END (exercise 1) */
 
