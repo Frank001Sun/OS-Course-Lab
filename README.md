@@ -135,7 +135,7 @@ Note：注册回调线程和服务线程都不再拥有调度上下文（Schedul
     * 该函数仅有一个参数，即IPC服务器的主线程在客户端进程cap_group中的capability。该函数会首先通过系统调用申请一块物理内存作为和服务器的共享内存（即图中的Shared Memory）。
     * 随后调用`sys_register_client`系统调用。该系统调用实现在kernel/ipc/connection.c当中，该系统调用会将刚才申请的物理内存映射到客户端的虚拟地址空间中，然后调用`create_connection`创建并初始化一个`struct ipc_connection`类型的内核对象，该内核对象中的shm字段会记录共享内存相关的信息（包括大小，分别在客户端进程和服务器进程当中的虚拟地址和capability）。
     * 之后会设置注册回调线程的栈地址、入口地址和第一个参数，并切换到注册回调线程运行。
-3. 注册回调线程运行的入口函数为主线程调用`ipc_register_server`是提供的client_register_handler参数，一般会使用默认的`DEFAULT_CLIENT_REGISTER_HANDLER`宏定义的入口函数，即定义在user/chcore-libc/musl-libc/src/chcore-port/ipc.c中的`register_cb`。
+3. 注册回调线程运行的入口函数为主线程调用`ipc_register_server`时提供的client_register_handler参数，一般会使用默认的`DEFAULT_CLIENT_REGISTER_HANDLER`宏定义的入口函数，即定义在user/chcore-libc/musl-libc/src/chcore-port/ipc.c中的`register_cb`。
     * 该函数首先分配一个用来映射共享内存的虚拟地址，随后创建一个服务线程。
     * 随后调用`sys_ipc_register_cb_return`系统调用进入内核，该系统调用将共享内存映射到刚才分配的虚拟地址上，补全`struct ipc_connection`内核对象中的一些元数据之后切换回客户端线程继续运行，客户端线程从`ipc_register_client`返回，完成IPC建立连接的过程。
 4. IPC客户端线程调用`ipc_create_msg`和`ipc_set_msg_data`向IPC共享内存中填充数据，然后调用`ipc_call`（user/chcore-libc/musl-libc/src/chcore-port/ipc.c中）发起IPC请求。
