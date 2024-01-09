@@ -55,7 +55,12 @@ int __rr_sched_enqueue(struct thread *thread, int cpuid)
         /* LAB 4 TODO BEGIN (exercise 2) */
         /* Insert thread into the ready queue of cpuid and update queue length */
         /* Note: you should add two lines of code. */
-        list_add(&thread->ready_queue_node,
+
+        // list_add(&thread->ready_queue_node,
+        //          &rr_ready_queue_meta[cpuid].queue_head);    
+        // If use list_add, the enqueued task will always preempt the others
+
+        list_append(&thread->ready_queue_node,
                  &rr_ready_queue_meta[cpuid].queue_head);
         rr_ready_queue_meta[cpuid].queue_len += 1;
 
